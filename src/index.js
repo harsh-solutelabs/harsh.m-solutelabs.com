@@ -14,9 +14,14 @@ const typeDefs = `
         post:Post!
     }
     type Mutation{
-      createUser(name:String!,email:String!,age:Int):User!
+      createUser(data:CreateUserInput!):User!
       createPost(title:String!,body:String!,published:Boolean!,author:ID!):Post!
       createCommet(text:String!,author:ID!,post:ID!):Commet!
+    }
+    input CreateUserInput{
+      name:String!
+      email:String!
+      age:Int
     }
     type User{
         id:ID!
@@ -90,7 +95,7 @@ const resolvers = {
   Mutation: {
     createUser(parent, args, ctx, info) {
       const emailTaken = users.some(user => {
-        return user.email === args.email;
+        return user.email === args.data.email;
       });
       console.log(emailTaken);
       if (emailTaken) {
@@ -98,9 +103,7 @@ const resolvers = {
       }
       const user = {
         id: uuidv4(),
-        name: args.name,
-        email: args.email,
-        age: args.age
+        ...args.data
       };
 
       users.push(user);
