@@ -1,11 +1,14 @@
 npm install babel-cli
 npm install babel-preset-env
-
+npm i babel-plugin-transform-object-rest-spread
 
 filename-.babelrc
-conent-{
+{
     "presets": [
         "env"
+    ],
+    "plugins": [
+        "transform-object-rest-spread"
     ]
 }
 

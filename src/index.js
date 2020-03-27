@@ -1,7 +1,8 @@
 import { GraphQLServer } from "graphql-yoga";
-import {posts,users,commets} from "./demo.js"
-//scalar types - String,Boolean,Int,Float,ID
+import { posts, users, commets } from "./demo.js";
+import uuidv4 from "uuid/v4";
 
+//scalar types - String,Boolean,Int,Float,ID
 
 //Type Definition (Schema)
 const typeDefs = `
@@ -11,6 +12,11 @@ const typeDefs = `
         commets:[Commet!]!
         me:User!
         post:Post!
+    }
+    type Mutation{
+      createUser(name:String!,email:String!,age:Int):User!
+      createPost(title:String!,body:String!,published:Boolean!,author:ID!):Post!
+      createCommet(text:String!,author:ID!,post:ID!):Commet!
     }
     type User{
         id:ID!
@@ -62,8 +68,8 @@ const resolvers = {
         );
       });
     },
-    commets(parent,args,ctx,info){
-      return commets
+    commets(parent, args, ctx, info) {
+      return commets;
     },
     me() {
       return {
@@ -81,44 +87,104 @@ const resolvers = {
       };
     }
   },
-  Post:{
-    author(parent,args,ctx,info){
-      return users.find((user)=>{
-        return user.id===parent.author
-      })
+  Mutation: {
+    createUser(parent, args, ctx, info) {
+      const emailTaken = users.some(user => {
+        return user.email === args.email;
+      });
+      console.log(emailTaken);
+      if (emailTaken) {
+        throw new Error("Email taken");
+      }
+      const user = {
+        id: uuidv4(),
+        name: args.name,
+        email: args.email,
+        age: args.age
+      };
+
+      users.push(user);
+      return user;
     },
-    commets(parent,args,ctx,info){
-      return commets.filter((commet)=>{
-        return commet.post === parent.commets
-      })
+    createPost(parent, args, ctx, info) {
+      const usersExists = users.some(user => {
+        return user.id === args.author;
+      });
+      if (!usersExists) {
+        throw new Error("Author not exists");
+      }
+
+      const post = {
+        id: uuidv4(),
+        title: args.title,
+        body: args.body,
+        published: args.published,
+        author: args.author
+      };
+
+      posts.push(post);
+
+      return post;
+    },
+    createCommet(parent, args, ctx, info) {
+      const usersExists = users.some(user => {
+        return user.id === args.author;
+      });
+      const postExists = posts.some(post => {
+        return post.id === args.post && post.published === true;
+      });
+      console.log(usersExists);
+      console.log(postExists);
+      if (!usersExists || !postExists) {
+        throw new Error("User not Exits and post not Exits");
+      }
+
+      const commet = {
+        id: uuidv4(),
+        ...args
+      };
+
+      commets.push(commet);
+      return commet;
     }
   },
-  Commet:{
-    author(parent,args,ctx,info){
-      return users.find((user)=>{
-        return user.id === parent.author
-      })
+  Post: {
+    author(parent, args, ctx, info) {
+      return users.find(user => {
+        return user.id === parent.author;
+      });
     },
-    post(parent,args,ctx,info){
-      return posts.find((post)=>{
-        return post.id === parent.post
-      })
+    commets(parent, args, ctx, info) {
+      return commets.filter(commet => {
+        return commet.post === parent.commets;
+      });
     }
   },
-  User:{
-    posts(parent,args,ctx,info){
-      return posts.filter((post)=>{
-        return post.author === parent.id
-      })
+  Commet: {
+    author(parent, args, ctx, info) {
+      return users.find(user => {
+        return user.id === parent.author;
+      });
     },
-    commets(parent,args,ctx,info){
-      return commets.filter((commet)=>{
-        return commet.author === parent.id
-      })
+    post(parent, args, ctx, info) {
+      return posts.find(post => {
+        return post.id === parent.post;
+      });
+    }
+  },
+  User: {
+    posts(parent, args, ctx, info) {
+      return posts.filter(post => {
+        return post.author === parent.id;
+      });
+    },
+    commets(parent, args, ctx, info) {
+      return commets.filter(commet => {
+        return commet.author === parent.id;
+      });
     }
   }
 };
-
 //Server Start
 const server = new GraphQLServer({
   typeDefs: typeDefs,
