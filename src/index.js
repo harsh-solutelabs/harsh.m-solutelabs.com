@@ -1,51 +1,62 @@
 import { GraphQLServer } from "graphql-yoga";
-import { posts, users, commets } from "./demo.js";
+import { users } from "./demo.js";
 import uuidv4 from "uuid/v4";
 
 //scalar types - String,Boolean,Int,Float,ID
+let posts = [
+  {
+    id: "1",
+    title: "Nice book",
+    body: "mehta@gmail.com",
+    published: true,
+    author: "1",
+    commets: "1"
+  },
+  {
+    id: "2",
+    title: "harsh",
+    body: "Title test",
+    published: false,
+    author: "2",
+    commets: "2"
+  },
+  {
+    id: "3",
+    title: "harsh",
+    body: "mehta@gmail.com",
+    published: true,
+    author: "3",
+    commets: "3"
+  }
+];
 
-//Type Definition (Schema)
-const typeDefs = `
-    type Query{
-        users(query:String):[User!]!
-        posts(query:String):[Post!]!
-        commets:[Commet!]!
-        me:User!
-        post:Post!
-    }
-    type Mutation{
-      createUser(data:CreateUserInput!):User!
-      createPost(title:String!,body:String!,published:Boolean!,author:ID!):Post!
-      createCommet(text:String!,author:ID!,post:ID!):Commet!
-    }
-    input CreateUserInput{
-      name:String!
-      email:String!
-      age:Int
-    }
-    type User{
-        id:ID!
-        name:String!
-        email:String!
-        age:Int
-        posts:[Post!]!
-        commets:[Commet!]!
-    }
-    type Post{
-        id:ID!
-        title:String!
-        body:String!
-        published:Boolean!
-        author:User!
-        commets:[Commet!]!
-    }
-    type Commet{
-      id:ID!
-      text:String!
-      author:User!
-      post:Post!
-    }
-`;
+let commets = [
+  {
+    id: "1",
+    text: "This is working",
+    author: "1",
+    post: "2"
+  },
+  {
+    id: "2",
+    text: "second is not working",
+    author: "2",
+    post: "1"
+  },
+  {
+    id: "3",
+    text: "this is not working",
+    author: "3",
+    post: "3"
+  },
+  {
+    id: "4",
+    text: "this is not working",
+    author: "3",
+    post: "3"
+  }
+];
+
 
 //Resolvers
 const resolvers = {
@@ -149,6 +160,56 @@ const resolvers = {
 
       commets.push(commet);
       return commet;
+    },
+    deleteUser(parent, args, ctx, info) {
+      const userIndex = users.findIndex(user => {
+        return user.id === args.id;
+      });
+      if (userIndex === -1) {
+        throw new Error("User Not Exists");
+      }
+
+      const deletedUser = users.splice(userIndex, 1);
+
+      posts = posts.filter(post => {
+        const match = post.author === args.id;
+        if (match) {
+          commets = commets.filter(commet => {
+            return commet.post !== post.id;
+          });
+        }
+        return !match;
+      });
+
+      commets = commets.filter(commet => {
+        return commet.author !== args.id;
+      });
+
+      // console.log(posts);
+      return deletedUser[0];
+    },
+    deletePost(parent, args, ctx, info) {
+      const postIndex = posts.findIndex(post => {
+        return post.id === args.id;
+      });
+      if (postIndex === -1) {
+        throw new Error("Post not Exists!");
+      }
+      const deletePost = posts.splice(postIndex, 1);
+      commets = commets.filter(commet => {
+        return commet.post !== args.id;
+      });
+      return deletePost[0];
+    },
+    deleteCommet(parent, args, ctx, info) {
+      const commetIndex = commets.findIndex(commet => {
+        return commet.id === args.id;
+      });
+      if (commetIndex === -1) {
+        throw new Error("Comment to Exists");
+      }
+      const deleteCommet = commets.splice(commetIndex, 1);
+      return deleteCommet[0];
     }
   },
   Post: {
@@ -190,7 +251,7 @@ const resolvers = {
 };
 //Server Start
 const server = new GraphQLServer({
-  typeDefs: typeDefs,
+  typeDefs:'./src/schema.graphql',
   resolvers: resolvers
 });
 server.start(() => {
